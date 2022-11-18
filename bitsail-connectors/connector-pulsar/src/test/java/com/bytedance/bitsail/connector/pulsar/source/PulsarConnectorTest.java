@@ -1,11 +1,16 @@
 package com.bytedance.bitsail.connector.pulsar.source;
 
+import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
+import com.bytedance.bitsail.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import com.bytedance.bitsail.connector.pulsar.testutils.IntegerSource;
 import com.bytedance.bitsail.test.connector.test.EmbeddedFlinkCluster;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
@@ -15,9 +20,12 @@ import org.apache.flink.table.api.DataTypes;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
+import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.junit.After;
 import org.junit.Before;
@@ -88,15 +96,40 @@ public class PulsarConnectorTest extends EmbeddedFlinkCluster {
   }
 
   @Test
-  public void test() {
-    try {
-      testExactlyOnce(1);
-    } catch (Exception e) {
-      e.printStackTrace();
+  public void testPulsarSource() throws Exception {
+    final String topic = "ExactlyOnceTopicSource" + UUID.randomUUID();
+
+    // produce messages
+    PulsarClient client =
+	PulsarClient.builder().enableTransaction(true).serviceUrl(serviceUrl).build();
+
+    Producer<String> producer = client.newProducer(Schema.STRING).topic(topic).create();
+    for (int i = 0; i < 100; i++) {
+      producer.send(String.valueOf(i));
     }
+
+    PulsarSource<String> source = PulsarSource.builder()
+	.setServiceUrl(serviceUrl)
+	.setAdminUrl(adminUrl)
+	.setStartCursor(StartCursor.earliest())
+	.setTopics(topic)
+	.setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
+	.setSubscriptionName("my-subscription")
+	.setSubscriptionType(SubscriptionType.Exclusive)
+	.build();
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    DataStreamSource<String> ds = env.fromSource(source, WatermarkStrategy.noWatermarks(), "Pulsar Source");
+    ds.print();
+    env.execute("Exactly once test");
+
   }
 
-  protected void testExactlyOnce(int sinksCount) throws Exception {
+  @Test
+  public void testPulsarSink() throws Exception {
+    testSink(1);
+  }
+
+  protected void testSink(int sinksCount) throws Exception {
     final String topic = "ExactlyOnceTopicSink" + UUID.randomUUID();
     final int numElements = 1000;
 
