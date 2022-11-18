@@ -71,7 +71,7 @@ public final class PulsarSourceOptionsV1 {
 
     public static final ConfigOption<Long> PULSAR_MAX_FETCH_TIME =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "maxFetchTime")
-                                        .defaultValue(Duration.ofSeconds(10).toMillis());
+                                        .defaultValue(Duration.ofSeconds(100).toMillis());
 
     public static final ConfigOption<Integer> PULSAR_MAX_FETCH_RECORDS =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "maxFetchRecords")

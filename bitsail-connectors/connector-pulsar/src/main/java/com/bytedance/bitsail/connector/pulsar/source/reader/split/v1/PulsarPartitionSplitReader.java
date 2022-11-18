@@ -112,8 +112,9 @@ public abstract class PulsarPartitionSplitReader {
                     break;
                 }
 
-                // Deserialize message.
+                // Add message.
                 collector.setMessage(message);
+                collector.collect(message.getValue());
 
                 // Acknowledge message if need.
                 finishedPollMessage(message);

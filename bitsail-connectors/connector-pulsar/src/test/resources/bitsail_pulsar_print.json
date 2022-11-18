@@ -26,13 +26,15 @@
         },
         "consumer": {
           "startCursorMode": "latest",
-          "subscriptionType": "Exclusive"
+          "subscriptionType": "Exclusive",
+          "consumerName": "my_consumer",
+          "subscriptionName": "my_subscription"
         }
       },
 
       "columns": [
         {
-          "name": "ID",
+          "name": "id",
           "type": "string"
         }
       ],

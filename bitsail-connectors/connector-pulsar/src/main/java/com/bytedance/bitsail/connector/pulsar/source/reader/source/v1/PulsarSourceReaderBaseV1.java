@@ -39,6 +39,7 @@ import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.SourceReaderBase;
+import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.core.io.InputStatus;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -133,7 +134,8 @@ abstract class PulsarSourceReaderBaseV1 implements SourceReader<Row, PulsarParti
         splits.forEach(
             s -> {
                 splitStates.put(s.getPartition().toString(), new SplitContext<>(s.splitId(), initializedState(s)));
-                getOrCreateSplitReader(s.splitId());
+                PulsarPartitionSplitReader splitReader = getOrCreateSplitReader(s.splitId());
+                splitReader.handleSplitsChanges(new SplitsAddition<>(splits));
             });
         // Hand over the splits to the split fetcher to start fetch.
         assignedPulsarSplits.addAll(splits);
@@ -152,12 +154,15 @@ abstract class PulsarSourceReaderBaseV1 implements SourceReader<Row, PulsarParti
 
     @Override
     public boolean hasMoreElements() {
-        return false;
+        return true;
     }
 
     @Override
     public void close() throws Exception {
         // Close the all the consumers first.
+        for (PulsarPartitionSplitReader splitReader : splitReaderMapping.values()) {
+            splitReader.close();
+        }
 
         // Close shared pulsar resources.
         pulsarClient.shutdown();
@@ -166,43 +171,24 @@ abstract class PulsarSourceReaderBaseV1 implements SourceReader<Row, PulsarParti
 
     @Override
     public void pollNext(SourcePipeline<Row> output) throws Exception {
-        // make sure we have a fetch we are working on, or move to the next
-        RecordsWithSplitIds<PulsarMessage<byte[]>> recordsWithSplitId = this.currentFetch;
-        if (recordsWithSplitId == null) {
-            recordsWithSplitId = getNextFetch(output);
+
+        for (PulsarPartitionSplitReader splitReader : splitReaderMapping.values()) {
+            RecordsWithSplitIds<PulsarMessage<byte[]>> recordsWithSplitId = splitReader.fetch();
+
             if (recordsWithSplitId == null) {
-                trace(finishedOrAvailableLater());
-                return;
+                continue;
             }
-        }
 
-        // we need to loop here, because we may have to go across splits
-        while (true) {
-            // Process one record.
-            final PulsarMessage<byte[]> record = recordsWithSplitId.nextRecordFromSplit();
+            while (recordsWithSplitId.nextSplit() != null) {
+                PulsarMessage<byte[]> record = recordsWithSplitId.nextRecordFromSplit();
 
-
-            if (record != null) {
-                // emit the record.
-                Row deserialize = deserializationSchema.deserialize(record.getValue());
-                output.output(deserialize);
-                LOG.trace("Emitted record: {}", record);
-
-                // We always emit MORE_AVAILABLE here, even though we do not strictly know whether
-                // more is available. If nothing more is available, the next invocation will find
-                // this out and return the correct status.
-                // That means we emit the occasional 'false positive' for availability, but this
-                // saves us doing checks for every record. Ultimately, this is cheaper.
-                trace(InputStatus.MORE_AVAILABLE);
-                return;
-            } else if (!moveToNextSplit(recordsWithSplitId, output)) {
-                // The fetch is done and we just discovered that and have not emitted anything, yet.
-                // We need to move to the next fetch. As a shortcut, we call pollNext() here again,
-                // rather than emitting nothing and waiting for the caller to call us again.
-                pollNext(output);
-                return;
+                while (record != null) {
+                    Row deserialize = deserializationSchema.deserialize(record.getValue());
+                    output.output(deserialize);
+                    LOG.trace("Emitted record: {}", record);
+                    record = recordsWithSplitId.nextRecordFromSplit();
+                }
             }
-            // else fall through the loop
         }
     }
 

@@ -136,7 +136,7 @@ public class PulsarConnectorTest extends EmbeddedFlinkCluster {
 	    for (int i = 0; i < 100; i++) {
 	      producer.send(fakeJsonObject(i, typeInfos));
 	    }
-	  } catch (Exception e) {
+	  } catch bitsail-clients/bitsail-client-entry/pom.xml(Exception e) {
 	    log.error("Produce failed.", e);
 	  }
 	}), 0, 15, TimeUnit.SECONDS);

@@ -151,8 +151,8 @@ public final class PulsarSourceV1
     }
 
     private void setStopCursor(BitSailConfiguration readerConfiguration) {
-        String startCursorMode = readerConfiguration.getString(PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_MODE.key(), PULSAR_STOP_CURSOR_MODE_LATEST);
-        switch (startCursorMode) {
+        String stopCursorMode = readerConfiguration.get(PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_MODE);
+        switch (stopCursorMode) {
             case PULSAR_STOP_CURSOR_MODE_LATEST:
                 this.stopCursor = StopCursor.latest();
                 break;

@@ -25,7 +25,7 @@
     </properties>
 
     <dependencies>
-        <!-- basic bitsail dependencies -->
+        <!-- basic bitsail dependencioes -->
         <dependency>
             <groupId>com.bytedance.bitsail</groupId>
             <artifactId>connector-base</artifactId>
@@ -34,6 +34,7 @@
         <dependency>
             <groupId>com.bytedance.bitsail</groupId>
             <artifactId>bitsail-common</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
