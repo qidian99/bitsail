@@ -1,12 +1,11 @@
 package com.bytedance.bitsail.connector.pulsar.common.config.v1;
 
 import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
+import com.bytedance.bitsail.common.option.ConfigOption;
 import com.bytedance.bitsail.connector.pulsar.source.config.CursorVerification;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicMetadata;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 
-import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.Configuration;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminBuilder;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -14,11 +13,13 @@ import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
 import org.apache.pulsar.client.api.DeadLetterPolicy;
 import org.apache.pulsar.client.api.ProxyProtocol;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
@@ -33,73 +34,9 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarConfigUtils.setOptionValue;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTO_CERT_REFRESH_TIME;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_CONCURRENT_LOOKUP_REQUEST;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECTIONS_PER_BROKER;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECTION_TIMEOUT_MS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECT_TIMEOUT;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_ENABLE_BUSY_WAIT;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_ENABLE_TRANSACTION;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_INITIAL_BACKOFF_INTERVAL_NANOS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_KEEP_ALIVE_INTERVAL_SECONDS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_LISTENER_NAME;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_BACKOFF_INTERVAL_NANOS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_LOOKUP_REDIRECTS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_LOOKUP_REQUEST;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_NUMBER_OF_REJECTED_REQUEST_PER_CONNECTION;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_MEMORY_LIMIT_BYTES;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_NUM_IO_THREADS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_NUM_LISTENER_THREADS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_OPERATION_TIMEOUT_MS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_PROXY_PROTOCOL;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_PROXY_SERVICE_URL;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_READ_TIMEOUT;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_REQUEST_TIMEOUT;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_SSL_PROVIDER;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_STATS_INTERVAL_SECONDS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_ALLOW_INSECURE_CONNECTION;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_CIPHERS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_HOSTNAME_VERIFICATION_ENABLE;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_PROTOCOLS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_CERTS_FILE_PATH;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_PASSWORD;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_PATH;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_TYPE;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_KEY_STORE_TLS;
-import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_TCP_NO_DELAY;
+import static com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarOptionsV1.*;
 import static com.bytedance.bitsail.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_ACKNOWLEDGEMENTS_GROUP_TIME_MICROS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_ACK_RECEIPT_ENABLED;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_ACK_TIMEOUT_MILLIS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_AUTO_ACK_OLDEST_CHUNKED_MESSAGE_ON_QUEUE_FULL;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_AUTO_UPDATE_PARTITIONS_INTERVAL_SECONDS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_CONSUMER_NAME;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_CONSUMER_PROPERTIES;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_CRYPTO_FAILURE_ACTION;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_DEAD_LETTER_TOPIC;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_EXPIRE_TIME_OF_INCOMPLETE_CHUNKED_MESSAGE_MILLIS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_PENDING_CHUNKED_MESSAGE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_REDELIVER_COUNT;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_TOTAL_RECEIVER_QUEUE_SIZE_ACROSS_PARTITIONS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_NEGATIVE_ACK_REDELIVERY_DELAY_MICROS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_POOL_MESSAGES;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_PRIORITY_LEVEL;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_COMPACTED;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_RECEIVER_QUEUE_SIZE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_REPLICATE_SUBSCRIPTION_STATE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_RETRY_ENABLE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_RETRY_LETTER_TOPIC;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_INITIAL_POSITION;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_TICK_DURATION_MILLIS;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.*;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -252,9 +189,9 @@ public class PulsarUtils {
 	configuration,
 	PULSAR_NEGATIVE_ACK_REDELIVERY_DELAY_MICROS,
 	v -> builder.negativeAckRedeliveryDelay(v, MICROSECONDS));
-    setOptionValue(configuration, PULSAR_SUBSCRIPTION_TYPE, builder::subscriptionType);
-    setOptionValue(configuration, PULSAR_SUBSCRIPTION_MODE, builder::subscriptionMode);
-    setOptionValue(configuration, PULSAR_CRYPTO_FAILURE_ACTION, builder::cryptoFailureAction);
+    setOptionValue(configuration, PULSAR_SUBSCRIPTION_TYPE, e -> builder.subscriptionType(PulsarUtils.getSubscriptionType(e)));
+    setOptionValue(configuration, PULSAR_SUBSCRIPTION_MODE, e -> builder.subscriptionMode(PulsarUtils.getSubscriptionMode(e)));
+    setOptionValue(configuration, PULSAR_CRYPTO_FAILURE_ACTION, e -> builder.cryptoFailureAction(PulsarUtils.getCryptoFailureAction(e)));
     setOptionValue(configuration, PULSAR_RECEIVER_QUEUE_SIZE, builder::receiverQueueSize);
     setOptionValue(
 	configuration,
@@ -275,7 +212,7 @@ public class PulsarUtils {
     setOptionValue(
 	configuration,
 	PULSAR_SUBSCRIPTION_INITIAL_POSITION,
-	builder::subscriptionInitialPosition);
+	e -> builder.subscriptionInitialPosition(PulsarUtils.getSubscriptionInitialPosition(e)));
     createDeadLetterPolicy(configuration).ifPresent(builder::deadLetterPolicy);
     setOptionValue(
 	configuration,
@@ -297,6 +234,26 @@ public class PulsarUtils {
     setOptionValue(configuration, PULSAR_POOL_MESSAGES, builder::poolMessages);
 
     return builder;
+  }
+
+  private static SubscriptionInitialPosition getSubscriptionInitialPosition(String value) {
+    SubscriptionInitialPosition type = SubscriptionInitialPosition.Latest;
+    for (SubscriptionInitialPosition s : SubscriptionInitialPosition.values()) {
+      if (s.name().equalsIgnoreCase(value)) {
+	type = s;
+      }
+    }
+    return type;
+  }
+
+  private static ConsumerCryptoFailureAction getCryptoFailureAction(String value) {
+    ConsumerCryptoFailureAction type = ConsumerCryptoFailureAction.FAIL;
+    for (ConsumerCryptoFailureAction s : ConsumerCryptoFailureAction.values()) {
+      if (s.name().equalsIgnoreCase(value)) {
+	type = s;
+      }
+    }
+    return type;
   }
 
   private static Optional<DeadLetterPolicy> createDeadLetterPolicy(BitSailConfiguration configuration) {
@@ -358,7 +315,7 @@ public class PulsarUtils {
   /** Get the option value str from given config, convert it into the real value instance. */
   public static <F, T> T getOptionValue(
       BitSailConfiguration configuration, ConfigOption<F> option, Function<F, T> convertor) {
-    F value = (F) configuration.get(option.key());
+    F value = configuration.get(option);
     if (value != null) {
       return convertor.apply(value);
     } else {

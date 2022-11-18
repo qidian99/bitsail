@@ -61,10 +61,10 @@ import static java.util.Collections.singletonList;
 public class PulsarSourceSplitCoordinator
         implements SourceSplitCoordinator<PulsarPartitionSplit, PulsarSourceEnumStateV1> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumerator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceSplitCoordinator.class);
 
-    private final PulsarAdmin pulsarAdmin;
-    private final PulsarClient pulsarClient;
+    private PulsarAdmin pulsarAdmin;
+    private PulsarClient pulsarClient;
     private final PulsarSubscriber subscriber;
     private final StartCursor startCursor;
     private final RangeGenerator rangeGenerator;
@@ -77,8 +77,6 @@ public class PulsarSourceSplitCoordinator
     public PulsarSourceSplitCoordinator(PulsarSubscriber subscriber, StartCursor startCursor, RangeGenerator rangeGenerator, BitSailConfiguration readerConfiguration,
                                         SourceConfiguration sourceConfiguration, Context<PulsarPartitionSplit, PulsarSourceEnumStateV1> context,
                                         SplitsAssignmentStateV1 assignmentState, Boundedness sourceBoundedness) {
-        this.pulsarAdmin = PulsarUtils.createAdmin(readerConfiguration);
-        this.pulsarClient = PulsarUtils.createClient(readerConfiguration);
         this.subscriber = subscriber;
         this.startCursor = startCursor;
         this.rangeGenerator = rangeGenerator;
@@ -91,6 +89,8 @@ public class PulsarSourceSplitCoordinator
 
     @Override
     public void start() {
+        this.pulsarAdmin = PulsarUtils.createAdmin(readerConfiguration);
+        this.pulsarClient = PulsarUtils.createClient(readerConfiguration);
         rangeGenerator.open(readerConfiguration, sourceConfiguration);
 
         // Check the pulsar topic information and convert it into source split.

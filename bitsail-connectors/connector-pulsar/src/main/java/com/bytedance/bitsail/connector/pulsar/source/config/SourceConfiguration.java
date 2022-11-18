@@ -25,6 +25,8 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 
 import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarUtils;
+import com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions;
+import com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.CursorPosition;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import org.apache.pulsar.client.api.ConsumerBuilder;
@@ -35,16 +37,6 @@ import java.io.Serializable;
 import java.time.Duration;
 
 import static com.bytedance.bitsail.connector.pulsar.common.config.PulsarConfigUtils.getOptionValue;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_AUTO_COMMIT_CURSOR_INTERVAL;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_TRANSACTION_TIMEOUT_MILLIS;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_VERIFY_INITIAL_OFFSETS;
 
 /** The configure class for pulsar source. */
 @PublicEvolving
@@ -125,34 +117,34 @@ public class SourceConfiguration implements Serializable {
 
     public SourceConfiguration(Configuration configuration) {
         this.partitionDiscoveryIntervalMs =
-                configuration.get(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
+                configuration.get(PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
         this.enableAutoAcknowledgeMessage =
-                configuration.get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
-        this.autoCommitCursorInterval = configuration.get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
-        this.transactionTimeoutMillis = configuration.get(PULSAR_TRANSACTION_TIMEOUT_MILLIS);
+                configuration.get(PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
+        this.autoCommitCursorInterval = configuration.get(PulsarSourceOptions.PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
+        this.transactionTimeoutMillis = configuration.get(PulsarSourceOptions.PULSAR_TRANSACTION_TIMEOUT_MILLIS);
         this.maxFetchTime =
-                getOptionValue(configuration, PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
-        this.maxFetchRecords = configuration.get(PULSAR_MAX_FETCH_RECORDS);
-        this.verifyInitialOffsets = configuration.get(PULSAR_VERIFY_INITIAL_OFFSETS);
-        this.subscriptionName = configuration.get(PULSAR_SUBSCRIPTION_NAME);
-        this.subscriptionType = configuration.get(PULSAR_SUBSCRIPTION_TYPE);
-        this.subscriptionMode = configuration.get(PULSAR_SUBSCRIPTION_MODE);
+                getOptionValue(configuration, PulsarSourceOptions.PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
+        this.maxFetchRecords = configuration.get(PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS);
+        this.verifyInitialOffsets = configuration.get(PulsarSourceOptions.PULSAR_VERIFY_INITIAL_OFFSETS);
+        this.subscriptionName = configuration.get(PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME);
+        this.subscriptionType = configuration.get(PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE);
+        this.subscriptionMode = configuration.get(PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE);
     }
 
     public SourceConfiguration(BitSailConfiguration configuration) {
         this.partitionDiscoveryIntervalMs =
-            configuration.getLong(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS.key());
+            configuration.get(PulsarSourceOptionsV1.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
         this.enableAutoAcknowledgeMessage =
-            configuration.getBool(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE.key());
-        this.autoCommitCursorInterval = configuration.getLong(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL.key());
-        this.transactionTimeoutMillis = configuration.getLong(PULSAR_TRANSACTION_TIMEOUT_MILLIS.key());
+            configuration.get(PulsarSourceOptionsV1.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
+        this.autoCommitCursorInterval = configuration.get(PulsarSourceOptionsV1.PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
+        this.transactionTimeoutMillis = configuration.get(PulsarSourceOptionsV1.PULSAR_TRANSACTION_TIMEOUT_MILLIS);
         this.maxFetchTime =
-            PulsarUtils.getOptionValue(configuration, PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
-        this.maxFetchRecords = configuration.getInt(PULSAR_MAX_FETCH_RECORDS.key());
-        this.verifyInitialOffsets = PulsarUtils.getCursorVerification(configuration.getString(PULSAR_VERIFY_INITIAL_OFFSETS.key()));
-        this.subscriptionName = configuration.getString(PULSAR_SUBSCRIPTION_NAME.key());
-        this.subscriptionType = PulsarUtils.getSubscriptionType(configuration.getString(PULSAR_SUBSCRIPTION_TYPE.key()));
-        this.subscriptionMode = PulsarUtils.getSubscriptionMode(configuration.getString(PULSAR_SUBSCRIPTION_MODE.key()));
+            PulsarUtils.getOptionValue(configuration, PulsarSourceOptionsV1.PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
+        this.maxFetchRecords = configuration.get(PulsarSourceOptionsV1.PULSAR_MAX_FETCH_RECORDS);
+        this.verifyInitialOffsets = PulsarUtils.getCursorVerification(configuration.get(PulsarSourceOptionsV1.PULSAR_VERIFY_INITIAL_OFFSETS));
+        this.subscriptionName = configuration.get(PulsarSourceOptionsV1.PULSAR_SUBSCRIPTION_NAME);
+        this.subscriptionType = PulsarUtils.getSubscriptionType(configuration.get(PulsarSourceOptionsV1.PULSAR_SUBSCRIPTION_TYPE));
+        this.subscriptionMode = PulsarUtils.getSubscriptionMode(configuration.get(PulsarSourceOptionsV1.PULSAR_SUBSCRIPTION_MODE));
     }
 
     public boolean enablePartitionDiscovery() {

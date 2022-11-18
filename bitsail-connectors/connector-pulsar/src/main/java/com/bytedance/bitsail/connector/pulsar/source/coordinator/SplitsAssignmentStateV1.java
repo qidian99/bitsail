@@ -30,6 +30,7 @@ import org.apache.flink.util.InstantiationUtil;
 import org.apache.pulsar.client.api.SubscriptionType;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,7 +42,7 @@ import java.util.Set;
 
 /** The state class for recording the split assignment. */
 @Internal
-public class SplitsAssignmentStateV1 {
+public class SplitsAssignmentStateV1 implements Serializable {
 
     private final StopCursor stopCursor;
     private final SourceConfiguration sourceConfiguration;

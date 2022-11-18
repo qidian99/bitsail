@@ -18,7 +18,6 @@
 
 package com.bytedance.bitsail.connector.pulsar.source;
 
-import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StopCursor;

@@ -30,12 +30,12 @@ import com.bytedance.bitsail.base.serializer.BinarySerializer;
 import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.common.option.CommonOptions;
 import com.bytedance.bitsail.common.row.Row;
-import com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions;
+import com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarOptionsV1;
 import com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarUtils;
 import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
+import com.bytedance.bitsail.connector.pulsar.source.coordinator.PulsarSourceEnumStateV1;
 import com.bytedance.bitsail.connector.pulsar.source.coordinator.PulsarSourceSplitCoordinator;
 import com.bytedance.bitsail.connector.pulsar.source.coordinator.SplitsAssignmentStateV1;
-import com.bytedance.bitsail.connector.pulsar.source.coordinator.PulsarSourceEnumStateV1;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StopCursor;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
@@ -53,7 +53,6 @@ import com.bytedance.bitsail.connector.pulsar.source.split.v1.PulsarPartitionSpl
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -69,13 +68,13 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_START_CURSOR_MODE_TIMESTAMP;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_START_CURSOR_MODE_EARLIEST;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_START_CURSOR_MODE_LATEST;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_STOP_CURSOR_MODE_LATEST;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_STOP_CURSOR_MODE_NEVER;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_STOP_CURSOR_MODE_TIMESTAMP;
-import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_START_CURSOR_MODE_EARLIEST;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_START_CURSOR_MODE_LATEST;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_START_CURSOR_MODE_TIMESTAMP;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_MODE_LATEST;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_MODE_NEVER;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_MODE_TIMESTAMP;
+import static com.bytedance.bitsail.connector.pulsar.source.PulsarSourceOptionsV1.PULSAR_SUBSCRIPTION_TYPE;
 
 @PublicEvolving
 @Slf4j
@@ -110,9 +109,9 @@ public final class PulsarSourceV1
             // Override the range generator.
             this.rangeGenerator = new FullRangeGenerator();
         }
-        String topics = readerConfiguration.getString(PulsarOptions.PULSAR_TOPICS.key());
-        String topicMode = readerConfiguration.getString(PulsarOptions.PULSAR_TOPIC_MODE.key());
-        String topicSubscriptionMode = readerConfiguration.getString(PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE.key());
+        String topics = readerConfiguration.getString(PulsarOptionsV1.PULSAR_TOPICS.key());
+        String topicMode = readerConfiguration.getString(PulsarOptionsV1.PULSAR_TOPIC_MODE.key());
+        String topicSubscriptionMode = readerConfiguration.getString(PulsarSourceOptionsV1.PULSAR_SUBSCRIPTION_MODE.key());
         if (PulsarUtils.TOPIC_MODE_PATTERN.equalsIgnoreCase(topicMode)) {
             this.subscriber =
                 PulsarSubscriber.getTopicPatternSubscriber(Pattern.compile(topics), PulsarUtils.getRegexSubscriptionMode(topicSubscriptionMode));
@@ -130,7 +129,7 @@ public final class PulsarSourceV1
     }
 
     private void setStartCursor(BitSailConfiguration readerConfiguration) {
-        String startCursorMode = readerConfiguration.getString(PulsarSourceOptions.PULSAR_START_CURSOR_MODE.key(), PULSAR_START_CURSOR_MODE_LATEST);
+        String startCursorMode = readerConfiguration.getString(PulsarSourceOptionsV1.PULSAR_START_CURSOR_MODE.key(), PULSAR_START_CURSOR_MODE_LATEST);
         switch (startCursorMode) {
             case PULSAR_START_CURSOR_MODE_LATEST:
                 this.startCursor = StartCursor.latest();
@@ -139,7 +138,7 @@ public final class PulsarSourceV1
                 this.startCursor = StartCursor.earliest();
                 break;
             case PULSAR_START_CURSOR_MODE_TIMESTAMP:
-                Long cursorTimestamp = readerConfiguration.getLong(PulsarSourceOptions.PULSAR_START_CURSOR_TIMESTAMP.key());
+                Long cursorTimestamp = readerConfiguration.getLong(PulsarSourceOptionsV1.PULSAR_START_CURSOR_TIMESTAMP.key());
                 if (cursorTimestamp == null) {
                     cursorTimestamp = System.currentTimeMillis();
                 }
@@ -152,7 +151,7 @@ public final class PulsarSourceV1
     }
 
     private void setStopCursor(BitSailConfiguration readerConfiguration) {
-        String startCursorMode = readerConfiguration.getString(PulsarSourceOptions.PULSAR_STOP_CURSOR_MODE.key(), PULSAR_STOP_CURSOR_MODE_LATEST);
+        String startCursorMode = readerConfiguration.getString(PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_MODE.key(), PULSAR_STOP_CURSOR_MODE_LATEST);
         switch (startCursorMode) {
             case PULSAR_STOP_CURSOR_MODE_LATEST:
                 this.stopCursor = StopCursor.latest();
@@ -161,7 +160,7 @@ public final class PulsarSourceV1
                 this.stopCursor = StopCursor.never();
                 break;
             case PULSAR_STOP_CURSOR_MODE_TIMESTAMP:
-                Long cursorTimestamp = readerConfiguration.getLong(PulsarSourceOptions.PULSAR_STOP_CURSOR_TIMESTAMP.key());
+                Long cursorTimestamp = readerConfiguration.getLong(PulsarSourceOptionsV1.PULSAR_STOP_CURSOR_TIMESTAMP.key());
                 if (cursorTimestamp == null) {
                     cursorTimestamp = System.currentTimeMillis();
                 }
@@ -204,9 +203,9 @@ public final class PulsarSourceV1
     public ParallelismAdvice getParallelismAdvice(BitSailConfiguration commonConfiguration,
                                                   BitSailConfiguration pulsarConfiguration,
                                                   ParallelismAdvice upstreamAdvice) throws Exception {
-        String topics = pulsarConfiguration.getString(PulsarOptions.PULSAR_TOPICS.key());
-        String topicMode = pulsarConfiguration.getString(PulsarOptions.PULSAR_TOPIC_MODE.key());
-        String topicSubscriptionMode = pulsarConfiguration.getString(PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE.key());
+        String topics = pulsarConfiguration.getString(PulsarOptionsV1.PULSAR_TOPICS.key());
+        String topicMode = pulsarConfiguration.getString(PulsarOptionsV1.PULSAR_TOPIC_MODE.key());
+        String topicSubscriptionMode = pulsarConfiguration.getString(PulsarSourceOptionsV1.PULSAR_SUBSCRIPTION_MODE.key());
         PulsarAdmin pulsarAdmin = PulsarUtils.createAdmin(pulsarConfiguration);
         Integer partitions;
         if (PulsarUtils.TOPIC_MODE_PATTERN.equalsIgnoreCase(topicMode)) {
@@ -236,7 +235,7 @@ public final class PulsarSourceV1
 
 
         try {
-            int adviceParallelism = Math.max(CollectionUtils.size(partitions) / DEFAULT_PULSAR_PARALLELISM_THRESHOLD, 1);
+            int adviceParallelism = Math.max(partitions / DEFAULT_PULSAR_PARALLELISM_THRESHOLD, 1);
 
             return ParallelismAdvice.builder()
                 .adviceParallelism(adviceParallelism)

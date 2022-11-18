@@ -12,14 +12,24 @@
       }
     },
     "reader": {
-      "": "localhost:9876",
-      "topics": "ADB666",
-      "service_url": "http://lcoalhost:8080",
-      "admin_url": "pulsar://localhost:6650",
-      "subscription": {
-        "name": "subscription_1",
-        "mode": "Exclusive"
+      "pulsar": {
+        "source": {
+          "enableAutoAcknowledgeMessage": true
+        },
+        "client": {
+          "serviceUrl": "pulsar://lcoalhost:8080"
+        },
+        "admin": {
+          "adminUrl": "http://localhost:6650",
+          "topics": "TBW102",
+          "topicMode": "list"
+        },
+        "consumer": {
+          "startCursorMode": "latest",
+          "subscriptionType": "Exclusive"
+        }
       },
+
       "columns": [
         {
           "name": "ID",
@@ -27,7 +37,7 @@
         }
       ],
       "format_type": "json",
-      "class": "com.bytedance.bitsail.connector.pulsar.source.PulsarSource"
+      "class": "com.bytedance.bitsail.connector.pulsar.source.PulsarSourceV1"
     },
     "writer": {
       "class": "com.bytedance.bitsail.connector.legacy.print.sink.PrintSink"

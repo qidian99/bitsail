@@ -1,10 +1,18 @@
 package com.bytedance.bitsail.connector.pulsar.source;
 
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
+import com.bytedance.bitsail.common.option.ReaderOptions;
+import com.bytedance.bitsail.common.typeinfo.TypeInfo;
+import com.bytedance.bitsail.common.typeinfo.TypeInfoUtils;
+import com.bytedance.bitsail.common.util.JsonSerializer;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import com.bytedance.bitsail.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import com.bytedance.bitsail.connector.pulsar.testutils.IntegerSource;
 import com.bytedance.bitsail.test.connector.test.EmbeddedFlinkCluster;
+import com.bytedance.bitsail.test.connector.test.utils.JobConfUtils;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -42,10 +50,16 @@ import org.testcontainers.utility.DockerImageName;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import static com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarOptionsV1.PULSAR_ADMIN_URL;
+import static com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarOptionsV1.PULSAR_SERVICE_URL;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -95,6 +109,47 @@ public class PulsarConnectorTest extends EmbeddedFlinkCluster {
 	    + pulsarService.getContainerName());
   }
 
+
+  @Test
+  public void testPulsarSourceV1() throws Exception {
+    BitSailConfiguration jobConf = JobConfUtils.fromClasspath("bitsail_pulsar_print.json");
+    jobConf.set(PULSAR_SERVICE_URL, serviceUrl);
+    jobConf.set(PULSAR_ADMIN_URL, adminUrl);
+    PulsarSourceV1 pulsarSource = new PulsarSourceV1();
+    TypeInfo<?>[] typeInfos = TypeInfoUtils.getTypeInfos(pulsarSource.createTypeInfoConverter(),
+	jobConf.get(ReaderOptions.BaseReaderOptions.COLUMNS));
+
+    startProduceMessages(typeInfos);
+    EmbeddedFlinkCluster.submitJob(jobConf);
+  }
+
+
+
+  private void startProduceMessages(TypeInfo<?>[] typeInfos) throws PulsarClientException {
+    PulsarClient client =
+	PulsarClient.builder().enableTransaction(true).serviceUrl(serviceUrl).build();
+    Producer<byte[]> producer = client.newProducer(Schema.BYTES).topic(DEFAULT_TOPIC).create();
+    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+    scheduledExecutor.scheduleAtFixedRate(
+	new Thread(() -> {
+	  try {
+	    for (int i = 0; i < 100; i++) {
+	      producer.send(fakeJsonObject(i, typeInfos));
+	    }
+	  } catch (Exception e) {
+	    log.error("Produce failed.", e);
+	  }
+	}), 0, 15, TimeUnit.SECONDS);
+  }
+
+  private static byte[] fakeJsonObject(int index, TypeInfo<?>[] typeInfos) {
+    Map<Object, Object> demo = Maps.newHashMap();
+    demo.put("id", index);
+    return JsonSerializer.serialize(demo).getBytes();
+  }
+
+
+
   @Test
   public void testPulsarSource() throws Exception {
     final String topic = "ExactlyOnceTopicSource" + UUID.randomUUID();
@@ -102,7 +157,6 @@ public class PulsarConnectorTest extends EmbeddedFlinkCluster {
     // produce messages
     PulsarClient client =
 	PulsarClient.builder().enableTransaction(true).serviceUrl(serviceUrl).build();
-
     Producer<String> producer = client.newProducer(Schema.STRING).topic(topic).create();
     for (int i = 0; i < 100; i++) {
       producer.send(String.valueOf(i));
@@ -235,7 +289,7 @@ public class PulsarConnectorTest extends EmbeddedFlinkCluster {
   }
 
 
-    @After
+  @After
   public void after() {
     log.info("-------------------------------------------------------------------------");
     log.info("    Shut down PulsarTestBase ");
