@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>bitsail-connectors</artifactId>
+        <groupId>com.bytedance.bitsail</groupId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>connector-pulsar</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <pulsar.version>2.8.0</pulsar.version>
+
+        <!-- Test Libraries -->
+        <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+        <assertj-core.version>3.20.2</assertj-core.version>
+        <commons-lang3.version>3.11</commons-lang3.version>
+        <grpc.version>1.33.0</grpc.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.streamnative.connectors</groupId>
+            <artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
+            <version>${pulsar-flink-connector.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bytedance.bitsail</groupId>
+            <artifactId>bitsail-connector-test</artifactId>
+            <version>${revision}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-test-utils_2.11</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

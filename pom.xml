@@ -102,7 +102,7 @@
         <rocketmq.version>4.9.2</rocketmq.version>
         <snappy.version>1.1.2.6</snappy.version>
         <parquet.hadoop.version>1.8.3</parquet.hadoop.version>
-
+        <pulsar-flink-connector.version>1.11.1.5</pulsar-flink-connector.version>
         <!--   enforce dependency     -->
     </properties>
 
