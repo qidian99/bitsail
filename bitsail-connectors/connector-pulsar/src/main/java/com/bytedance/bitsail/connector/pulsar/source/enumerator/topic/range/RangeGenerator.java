@@ -19,10 +19,13 @@
 package com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.range;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.configuration.Configuration;
+
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicMetadata;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicRange;
+
+import org.apache.flink.configuration.Configuration;
 import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.SubscriptionType;
 
@@ -51,6 +54,9 @@ public interface RangeGenerator extends Serializable {
     List<TopicRange> range(TopicMetadata metadata, int parallelism);
 
     default void open(Configuration configuration, SourceConfiguration sourceConfiguration) {
+        // This method is used for user implementation.
+    }
+    default void open(BitSailConfiguration configuration, SourceConfiguration sourceConfiguration) {
         // This method is used for user implementation.
     }
 }

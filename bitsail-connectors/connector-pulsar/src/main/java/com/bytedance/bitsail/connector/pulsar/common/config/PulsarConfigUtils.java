@@ -244,7 +244,7 @@ public final class PulsarConfigUtils {
 
     /** Get the option value str from given config, convert it into the real value instance. */
     public static <F, T> T getOptionValue(
-            Configuration configuration, ConfigOption<F> option, Function<F, T> convertor) {
+	Configuration configuration, ConfigOption<F> option, Function<F, T> convertor) {
         F value = configuration.get(option);
         if (value != null) {
             return convertor.apply(value);
@@ -255,7 +255,7 @@ public final class PulsarConfigUtils {
 
     /** Set the config option's value to a given builder. */
     public static <T> void setOptionValue(
-            Configuration configuration, ConfigOption<T> option, Consumer<T> setter) {
+	Configuration configuration, ConfigOption<T> option, Consumer<T> setter) {
         setOptionValue(configuration, option, identity(), setter);
     }
 
@@ -263,10 +263,10 @@ public final class PulsarConfigUtils {
      * Query the config option's value, convert it into a required type, set it to a given builder.
      */
     public static <T, V> void setOptionValue(
-            Configuration configuration,
-            ConfigOption<T> option,
-            Function<T, V> convertor,
-            Consumer<V> setter) {
+	Configuration configuration,
+	ConfigOption<T> option,
+	Function<T, V> convertor,
+	Consumer<V> setter) {
         if (configuration.contains(option)) {
             V value = getOptionValue(configuration, option, convertor);
             setter.accept(value);

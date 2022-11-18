@@ -24,6 +24,8 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
+
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
 import com.bytedance.bitsail.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import com.bytedance.bitsail.connector.pulsar.source.reader.message.PulsarMessage;
@@ -62,10 +64,10 @@ public final class PulsarSourceReaderFactory {
 
     @SuppressWarnings("java:S2095")
     public static <OUT> SourceReader<OUT, PulsarPartitionSplit> create(
-            SourceReaderContext readerContext,
-            PulsarDeserializationSchema<OUT> deserializationSchema,
-            Configuration configuration,
-            SourceConfiguration sourceConfiguration) {
+        SourceReaderContext readerContext,
+        PulsarDeserializationSchema<OUT> deserializationSchema,
+        Configuration configuration,
+        SourceConfiguration sourceConfiguration) {
 
         PulsarClient pulsarClient = createClient(configuration);
         PulsarAdmin pulsarAdmin = createAdmin(configuration);

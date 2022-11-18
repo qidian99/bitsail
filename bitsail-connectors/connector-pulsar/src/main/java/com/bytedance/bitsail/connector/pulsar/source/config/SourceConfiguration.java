@@ -22,6 +22,9 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
+
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
+import com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarUtils;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.CursorPosition;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import org.apache.pulsar.client.api.ConsumerBuilder;
@@ -134,6 +137,22 @@ public class SourceConfiguration implements Serializable {
         this.subscriptionName = configuration.get(PULSAR_SUBSCRIPTION_NAME);
         this.subscriptionType = configuration.get(PULSAR_SUBSCRIPTION_TYPE);
         this.subscriptionMode = configuration.get(PULSAR_SUBSCRIPTION_MODE);
+    }
+
+    public SourceConfiguration(BitSailConfiguration configuration) {
+        this.partitionDiscoveryIntervalMs =
+            configuration.getLong(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS.key());
+        this.enableAutoAcknowledgeMessage =
+            configuration.getBool(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE.key());
+        this.autoCommitCursorInterval = configuration.getLong(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL.key());
+        this.transactionTimeoutMillis = configuration.getLong(PULSAR_TRANSACTION_TIMEOUT_MILLIS.key());
+        this.maxFetchTime =
+            PulsarUtils.getOptionValue(configuration, PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
+        this.maxFetchRecords = configuration.getInt(PULSAR_MAX_FETCH_RECORDS.key());
+        this.verifyInitialOffsets = PulsarUtils.getCursorVerification(configuration.getString(PULSAR_VERIFY_INITIAL_OFFSETS.key()));
+        this.subscriptionName = configuration.getString(PULSAR_SUBSCRIPTION_NAME.key());
+        this.subscriptionType = PulsarUtils.getSubscriptionType(configuration.getString(PULSAR_SUBSCRIPTION_TYPE.key()));
+        this.subscriptionMode = PulsarUtils.getSubscriptionMode(configuration.getString(PULSAR_SUBSCRIPTION_MODE.key()));
     }
 
     public boolean enablePartitionDiscovery() {

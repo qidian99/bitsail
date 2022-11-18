@@ -500,6 +500,22 @@ public final class PulsarOptions {
                                             code("http://my-broker.example.com:8080"),
                                             code("https://my-broker.example.com:8443"))
                                     .build());
+    public static final ConfigOption<String> PULSAR_TOPIC_MODE =
+        ConfigOptions.key(ADMIN_CONFIG_PREFIX + "topicMode")
+            .stringType()
+            .noDefaultValue()
+            .withDescription(
+                Description.builder()
+                    .text("Mode to subscribe to topics. Available options are `list` and `pattern`")
+                    .build());
+    public static final ConfigOption<String> PULSAR_TOPICS =
+        ConfigOptions.key(ADMIN_CONFIG_PREFIX + "topics")
+            .stringType()
+            .noDefaultValue()
+            .withDescription(
+                Description.builder()
+                    .text("The topics to subscribe. Can be a regex pattern or comma-delimited string")
+                    .build());
 
     public static final ConfigOption<Integer> PULSAR_CONNECT_TIMEOUT =
             ConfigOptions.key(ADMIN_CONFIG_PREFIX + "connectTimeout")

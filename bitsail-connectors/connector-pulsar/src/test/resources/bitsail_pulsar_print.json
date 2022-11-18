@@ -1,0 +1,36 @@
+{
+  "job": {
+    "common": {
+      "job_type": "STREAMING",
+      "job_plugin_lib_dir": "plugin",
+      "job_plugin_conf_dir": "plugin_conf",
+      "enable_dynamic_loader": true,
+      "instance_id": "1",
+      "internal_instance_id": "1",
+      "extra_properties": {
+        "update-mode": "append"
+      }
+    },
+    "reader": {
+      "": "localhost:9876",
+      "topics": "ADB666",
+      "service_url": "http://lcoalhost:8080",
+      "admin_url": "pulsar://localhost:6650",
+      "subscription": {
+        "name": "subscription_1",
+        "mode": "Exclusive"
+      },
+      "columns": [
+        {
+          "name": "ID",
+          "type": "string"
+        }
+      ],
+      "format_type": "json",
+      "class": "com.bytedance.bitsail.connector.pulsar.source.PulsarSource"
+    },
+    "writer": {
+      "class": "com.bytedance.bitsail.connector.legacy.print.sink.PrintSink"
+    }
+  }
+}

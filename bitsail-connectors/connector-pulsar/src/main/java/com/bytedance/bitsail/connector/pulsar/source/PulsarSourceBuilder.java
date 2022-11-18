@@ -18,6 +18,7 @@
 
 package com.bytedance.bitsail.connector.pulsar.source;
 
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StopCursor;
@@ -257,7 +258,7 @@ public final class PulsarSourceBuilder<OUT> {
      *     pick a certain type of topics.
      *     <ul>
      *       <li>PersistentOnly: only subscribe to persistent topics.
-     *       <li>NonPersistentOnly: only subscribe to non-persistent topics.
+     *       <li>NonPersistentOnly: only sustartCursorbscribe to non-persistent topics.
      *       <li>AllTopics: subscribe to both persistent and non-persistent topics.
      *     </ul>
      *
@@ -486,7 +487,7 @@ public final class PulsarSourceBuilder<OUT> {
         checkState(isSerializable(rangeGenerator), "RangeGenerator isn't serializable");
 
         // Make the configuration unmodifiable.
-        UnmodifiableConfiguration config = new UnmodifiableConfiguration(configuration);
+        Configuration config = new UnmodifiableConfiguration(configuration);
 
         return new PulsarSource<>(
                 config,

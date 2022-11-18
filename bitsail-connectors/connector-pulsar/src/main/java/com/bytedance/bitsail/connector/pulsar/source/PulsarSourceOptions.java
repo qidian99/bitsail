@@ -25,7 +25,6 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.description.Description;
 import com.bytedance.bitsail.connector.pulsar.common.config.PulsarOptions;
-import com.bytedance.bitsail.connector.pulsar.source.PulsarSourceBuilder;
 import com.bytedance.bitsail.connector.pulsar.source.config.CursorVerification;
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
@@ -584,4 +583,28 @@ public final class PulsarSourceOptions {
                     .booleanType()
                     .defaultValue(false)
                     .withDescription("Enable pooling of messages and the underlying data buffers.");
+
+    public static final String PULSAR_START_CURSOR_MODE_LATEST = "latest";
+    public static final String PULSAR_START_CURSOR_MODE_EARLIEST = "earliest";
+    public static final String PULSAR_START_CURSOR_MODE_TIMESTAMP = "timestamp";
+    public static final ConfigOption<String> PULSAR_START_CURSOR_MODE =
+        ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "startCursorMode")
+            .stringType()
+            .defaultValue(PULSAR_START_CURSOR_MODE_LATEST);
+    public static final ConfigOption<Long> PULSAR_START_CURSOR_TIMESTAMP =
+        ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "startCursorTimestamp")
+            .longType()
+            .noDefaultValue();
+    public static final String PULSAR_STOP_CURSOR_MODE_LATEST = "latest";
+    public static final String PULSAR_STOP_CURSOR_MODE_NEVER = "never";
+    public static final String PULSAR_STOP_CURSOR_MODE_TIMESTAMP = "timestamp";
+    public static final ConfigOption<String> PULSAR_STOP_CURSOR_MODE =
+        ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "stopCursorMode")
+            .stringType()
+            .defaultValue(PULSAR_STOP_CURSOR_MODE_NEVER);
+    public static final ConfigOption<Long> PULSAR_STOP_CURSOR_TIMESTAMP =
+        ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "stopCursorTimestamp")
+            .longType()
+            .noDefaultValue();
+    
 }

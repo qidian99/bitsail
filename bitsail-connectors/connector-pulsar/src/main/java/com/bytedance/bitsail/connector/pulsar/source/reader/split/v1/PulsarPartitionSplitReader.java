@@ -16,29 +16,30 @@
  * limitations under the License.
  */
 
-package com.bytedance.bitsail.connector.pulsar.source.reader.split;
+package com.bytedance.bitsail.connector.pulsar.source.reader.split.v1;
+
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
+import com.bytedance.bitsail.connector.pulsar.common.config.v1.PulsarUtils;
+import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
+import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StopCursor;
+import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicPartition;
+import com.bytedance.bitsail.connector.pulsar.source.reader.message.PulsarMessage;
+import com.bytedance.bitsail.connector.pulsar.source.reader.message.PulsarMessageCollector;
+import com.bytedance.bitsail.connector.pulsar.source.split.v1.PulsarPartitionSplit;
 
 import org.apache.flink.api.common.time.Deadline;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
-import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
-
-import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
-import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StopCursor;
-import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicPartition;
-import com.bytedance.bitsail.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
-import com.bytedance.bitsail.connector.pulsar.source.reader.message.PulsarMessage;
-import com.bytedance.bitsail.connector.pulsar.source.reader.message.PulsarMessageCollector;
-import com.bytedance.bitsail.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.util.Preconditions;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
@@ -58,42 +59,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static com.bytedance.bitsail.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static com.bytedance.bitsail.connector.pulsar.source.config.PulsarSourceConfigUtils.createConsumerBuilder;
 
-/**
- * The common partition split reader.
- *
- * @param <OUT> the type of the pulsar source message that would be serialized to downstream.
- */
-public abstract class PulsarPartitionSplitReaderBase<OUT>
-        implements SplitReader<PulsarMessage<OUT>, PulsarPartitionSplit> {
-    private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReaderBase.class);
+public abstract class PulsarPartitionSplitReader {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReader.class);
 
     protected final PulsarClient pulsarClient;
     protected final PulsarAdmin pulsarAdmin;
-    protected final Configuration configuration;
+    protected final BitSailConfiguration configuration;
     protected final SourceConfiguration sourceConfiguration;
-    protected final PulsarDeserializationSchema<OUT> deserializationSchema;
     protected final AtomicBoolean wakeup;
 
     protected Consumer<byte[]> pulsarConsumer;
     protected PulsarPartitionSplit registeredSplit;
 
-    protected PulsarPartitionSplitReaderBase(
+    protected PulsarPartitionSplitReader(
         PulsarClient pulsarClient,
         PulsarAdmin pulsarAdmin,
-        Configuration configuration,
-        SourceConfiguration sourceConfiguration,
-        PulsarDeserializationSchema<OUT> deserializationSchema) {
+        BitSailConfiguration readerConfiguration,
+        SourceConfiguration sourceConfiguration) {
         this.pulsarClient = pulsarClient;
         this.pulsarAdmin = pulsarAdmin;
-        this.configuration = configuration;
+        this.configuration = readerConfiguration;
         this.sourceConfiguration = sourceConfiguration;
-        this.deserializationSchema = deserializationSchema;
         this.wakeup = new AtomicBoolean(false);
     }
 
-    @Override
-    public RecordsWithSplitIds<PulsarMessage<OUT>> fetch() throws IOException {
-        RecordsBySplits.Builder<PulsarMessage<OUT>> builder = new RecordsBySplits.Builder<>();
+    public RecordsWithSplitIds<PulsarMessage<byte[]>> fetch() throws IOException {
+        RecordsBySplits.Builder<PulsarMessage<byte[]>> builder = new RecordsBySplits.Builder<>();
 
         // Return when no split registered to this reader.
         if (pulsarConsumer == null || registeredSplit == null) {
@@ -105,7 +96,7 @@ public abstract class PulsarPartitionSplitReaderBase<OUT>
 
         StopCursor stopCursor = registeredSplit.getStopCursor();
         String splitId = registeredSplit.splitId();
-        PulsarMessageCollector<OUT> collector = new PulsarMessageCollector<>(splitId, builder);
+        PulsarMessageCollector collector = new PulsarMessageCollector<>(splitId, builder);
         Deadline deadline = Deadline.fromNow(sourceConfiguration.getMaxFetchTime());
 
         // Consume message from pulsar until it was woke up by flink reader.
@@ -123,7 +114,6 @@ public abstract class PulsarPartitionSplitReaderBase<OUT>
 
                 // Deserialize message.
                 collector.setMessage(message);
-                deserializationSchema.deserialize(message, collector);
 
                 // Acknowledge message if need.
                 finishedPollMessage(message);
@@ -148,7 +138,6 @@ public abstract class PulsarPartitionSplitReaderBase<OUT>
         return builder.build();
     }
 
-    @Override
     public void handleSplitsChanges(SplitsChange<PulsarPartitionSplit> splitsChanges) {
         LOG.debug("Handle split changes {}", splitsChanges);
 
@@ -183,12 +172,10 @@ public abstract class PulsarPartitionSplitReaderBase<OUT>
         this.pulsarConsumer = consumer;
     }
 
-    @Override
     public void wakeUp() {
         wakeup.compareAndSet(false, true);
     }
 
-    @Override
     public void close() {
         if (pulsarConsumer != null) {
             sneakyClient(() -> pulsarConsumer.close());
@@ -217,7 +204,7 @@ public abstract class PulsarPartitionSplitReaderBase<OUT>
     /** Create a specified {@link Consumer} by the given topic partition. */
     protected Consumer<byte[]> createPulsarConsumer(TopicPartition partition) {
         ConsumerBuilder<byte[]> consumerBuilder =
-                createConsumerBuilder(pulsarClient, Schema.BYTES, configuration);
+                PulsarUtils.createConsumerBuilder(pulsarClient, Schema.BYTES, configuration);
 
         consumerBuilder.topic(partition.getFullTopicName());
 
@@ -231,4 +218,9 @@ public abstract class PulsarPartitionSplitReaderBase<OUT>
         // Create the consumer configuration by using common utils.
         return sneakyClient(consumerBuilder::subscribe);
     }
+
+
+    public void commit(TopicPartition partition, MessageId offsetsToCommit) {
+
+    };
 }

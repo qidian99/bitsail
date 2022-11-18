@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-package com.bytedance.bitsail.connector.pulsar.source.enumerator;
+package com.bytedance.bitsail.connector.pulsar.source.coordinator;
 
+import com.bytedance.bitsail.connector.pulsar.source.enumerator.SplitsAssignmentState;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicPartition;
-import com.bytedance.bitsail.connector.pulsar.source.split.PulsarPartitionSplit;
+import com.bytedance.bitsail.connector.pulsar.source.split.v1.PulsarPartitionSplit;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -29,7 +30,7 @@ import java.util.Set;
  * The state class for pulsar source enumerator, used for storing the split state. This class is
  * managed and controlled by {@link SplitsAssignmentState}.
  */
-public class PulsarSourceEnumState implements Serializable {
+public class PulsarSourceEnumStateV1 implements Serializable {
 
     /** The topic partitions that have been appended to this source. */
     private final Set<TopicPartition> appendedPartitions;
@@ -54,7 +55,7 @@ public class PulsarSourceEnumState implements Serializable {
 
     private final boolean initialized;
 
-    public PulsarSourceEnumState(
+    public PulsarSourceEnumStateV1(
             Set<TopicPartition> appendedPartitions,
             Set<PulsarPartitionSplit> pendingPartitionSplits,
             Map<Integer, Set<PulsarPartitionSplit>> pendingSharedPartitionSplits,

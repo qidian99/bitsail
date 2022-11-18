@@ -117,7 +117,7 @@ public final class PulsarSourceConfigUtils {
 
     /** Create a pulsar consumer builder by using the given Configuration. */
     public static <T> ConsumerBuilder<T> createConsumerBuilder(
-            PulsarClient client, Schema<T> schema, Configuration configuration) {
+        PulsarClient client, Schema<T> schema, Configuration configuration) {
         ConsumerBuilder<T> builder = client.newConsumer(schema);
 
         setOptionValue(configuration, PULSAR_SUBSCRIPTION_NAME, builder::subscriptionName);

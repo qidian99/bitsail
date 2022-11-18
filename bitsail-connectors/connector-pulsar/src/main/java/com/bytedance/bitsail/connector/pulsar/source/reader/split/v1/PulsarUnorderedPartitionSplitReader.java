@@ -16,18 +16,15 @@
  * limitations under the License.
  */
 
-package com.bytedance.bitsail.connector.pulsar.source.reader.split;
+package com.bytedance.bitsail.connector.pulsar.source.reader.split.v1;
 
-import org.apache.flink.annotation.Internal;
-
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.common.utils.PulsarTransactionUtils;
 import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
-import com.bytedance.bitsail.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
-import com.bytedance.bitsail.connector.pulsar.source.reader.source.PulsarUnorderedSourceReader;
-import com.bytedance.bitsail.connector.pulsar.source.split.PulsarPartitionSplit;
-import com.bytedance.bitsail.connector.pulsar.source.split.PulsarPartitionSplitState;
+import com.bytedance.bitsail.connector.pulsar.source.split.v1.PulsarPartitionSplit;
+import com.bytedance.bitsail.connector.pulsar.source.split.v1.PulsarPartitionSplitState;
 
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.annotation.Internal;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -49,14 +46,8 @@ import java.util.concurrent.TimeUnit;
 
 import static com.bytedance.bitsail.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 
-/**
- * The split reader a given {@link PulsarPartitionSplit}, it would be closed once the {@link
- * PulsarUnorderedSourceReader} is closed.
- *
- * @param <OUT> the type of the pulsar source message that would be serialized to downstream.
- */
 @Internal
-public class PulsarUnorderedPartitionSplitReader<OUT> extends PulsarPartitionSplitReaderBase<OUT> {
+public class PulsarUnorderedPartitionSplitReader extends PulsarPartitionSplitReader{
     private static final Logger LOG =
             LoggerFactory.getLogger(PulsarUnorderedPartitionSplitReader.class);
 
@@ -69,11 +60,10 @@ public class PulsarUnorderedPartitionSplitReader<OUT> extends PulsarPartitionSpl
     public PulsarUnorderedPartitionSplitReader(
         PulsarClient pulsarClient,
         PulsarAdmin pulsarAdmin,
-        Configuration configuration,
+        BitSailConfiguration configuration,
         SourceConfiguration sourceConfiguration,
-        PulsarDeserializationSchema<OUT> deserializationSchema,
         TransactionCoordinatorClient coordinatorClient) {
-        super(pulsarClient, pulsarAdmin, configuration, sourceConfiguration, deserializationSchema);
+        super(pulsarClient, pulsarAdmin, configuration, sourceConfiguration);
 
         this.coordinatorClient = coordinatorClient;
     }

@@ -16,18 +16,15 @@
  * limitations under the License.
  */
 
-package com.bytedance.bitsail.connector.pulsar.source.reader.split;
+package com.bytedance.bitsail.connector.pulsar.source.reader.split.v1;
 
-import org.apache.flink.annotation.Internal;
-
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.connector.pulsar.source.config.SourceConfiguration;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.cursor.StartCursor;
 import com.bytedance.bitsail.connector.pulsar.source.enumerator.topic.TopicPartition;
-import com.bytedance.bitsail.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
-import com.bytedance.bitsail.connector.pulsar.source.reader.source.PulsarOrderedSourceReader;
-import com.bytedance.bitsail.connector.pulsar.source.split.PulsarPartitionSplit;
+import com.bytedance.bitsail.connector.pulsar.source.split.v1.PulsarPartitionSplit;
 
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.annotation.Internal;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -43,24 +40,26 @@ import java.util.concurrent.TimeUnit;
 import static com.bytedance.bitsail.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static com.bytedance.bitsail.connector.pulsar.source.config.CursorVerification.FAIL_ON_MISMATCH;
 
-/**
- * The split reader a given {@link PulsarPartitionSplit}, it would be closed once the {@link
- * PulsarOrderedSourceReader} is closed.
- *
- * @param <OUT> the type of the pulsar source message that would be serialized to downstream.
- */
 @Internal
-public class PulsarOrderedPartitionSplitReader<OUT> extends PulsarPartitionSplitReaderBase<OUT> {
+public class PulsarOrderedPartitionSplitReader extends PulsarPartitionSplitReader {
     private static final Logger LOG =
             LoggerFactory.getLogger(PulsarOrderedPartitionSplitReader.class);
 
     public PulsarOrderedPartitionSplitReader(
         PulsarClient pulsarClient,
         PulsarAdmin pulsarAdmin,
-        Configuration configuration,
-        SourceConfiguration sourceConfiguration,
-        PulsarDeserializationSchema<OUT> deserializationSchema) {
-        super(pulsarClient, pulsarAdmin, configuration, sourceConfiguration, deserializationSchema);
+        BitSailConfiguration configuration,
+        SourceConfiguration sourceConfiguration) {
+        super(pulsarClient, pulsarAdmin, configuration, sourceConfiguration);
+    }
+
+    @Override
+    public void commit(TopicPartition partition, MessageId offsetsToCommit) {
+        if (pulsarConsumer == null) {
+            this.pulsarConsumer = createPulsarConsumer(partition);
+        }
+
+        sneakyClient(() -> pulsarConsumer.acknowledgeCumulative(offsetsToCommit));
     }
 
     @Override

@@ -98,13 +98,13 @@ public final class PulsarSource<OUT>
      * PulsarSourceBuilder}.
      */
     PulsarSource(
-            Configuration configuration,
-            PulsarSubscriber subscriber,
-            RangeGenerator rangeGenerator,
-            StartCursor startCursor,
-            StopCursor stopCursor,
-            Boundedness boundedness,
-            PulsarDeserializationSchema<OUT> deserializationSchema) {
+	Configuration configuration,
+	PulsarSubscriber subscriber,
+	RangeGenerator rangeGenerator,
+	StartCursor startCursor,
+	StopCursor stopCursor,
+	Boundedness boundedness,
+	PulsarDeserializationSchema<OUT> deserializationSchema) {
 
         this.configuration = configuration;
         this.sourceConfiguration = new SourceConfiguration(configuration);
